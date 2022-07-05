@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser-arcade-physics.min.js"></script>
+
+  <style>
+    body {
+      margin: 0 auto;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #533d8e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div id="thegame"></div>
+
+  <script>
+    let vegesArray = ["carrots", "cabbage", "pumpkin", "kumara"]
+    let mapScale = 0.5
+    let gameWon = false
+
+    let vegeInHand = false
+    let vegeInHandEquals = ""
+    let grownVegeInHand = false
+    let grownVegeInHandEquals = ""
+
+    let countdownTimer = 0;
+    let hangiPercentValue = 0;
+
+    let carrotsInGarden = 0
+    let cabbageInGarden = 0
+    let pumpkinInGarden = 0
+    let kumaraInGarden = 0
+
+    let carrotsInHangi = 0
+    let cabbageInHangi = 0
+    let pumpkinInHangi = 0
+    let kumaraInHangi = 0
+
+    let vegeTotal = 4 * 9
+    let percentageIncrease = 100 / vegeTotal
+
+    let bullets;
+    let lastFired = 0;
+
+    window.onload = function () {
+      var config = {
+        type: Phaser.AUTO,
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+          parent: "thegame",
+          width: 740,
+          height: 360,
+        },
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 0 },
+            debug: false
+
+          }
+        },
+        scene: [GameIntro, GamePlay, GameOver]
+      };
+
+      this.game = new Phaser.Game(config);
+      window.focus();
+    }
+
+    /* ======================
+    GAME INTRO SCENE
+=========================*/
+    class GameIntro extends Phaser.Scene {
+      constructor() {
+        super({
+          key: "game-intro",
+          pack: {
+            files: [
+              {
+                type: "plugin",
+                key: "rexwebfontloaderplugin",
+                url: "https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexwebfontloaderplugin.min.js",
+                start: true,
+              },
+              {
+                type: "plugin",
+                key: "rexVirtualJoystick",
+                url: "https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexvirtualjoystickplugin.min.js",
+                start: true,
+              },
+              {
+                type: "image",
+                key: "tc-logo",
+                url: "https://cdn.glitch.global/d000a9ec-7a88-4c14-9cdd-f194575da68e/all%20white.png?v=1649980778495",
+              },
+            ],
+          },
+        });
+      }
+      // preloads for the intro scene
+      preload() {
+        //----- loading screen
+        var width = this.cameras.main.width;
+        var height = this.cameras.main.height;
+
+        // "loading..." text
+        var loadingText = this.make.text({
+          x: width / 2,
+          y: height / 2 - 150,
+          text: "Loading...",
+          style: {
+            font: "20px monospace",
+            fill: "#ffffff",
+          },
+        });
+        loadingText.setOrigin(0.5, 0.5);
+
+        // "made by" text
+        var madeByText = this.make.text({
+          x: width / 2,
+          y: height / 2 - 20,
+          text: "game by",
+          style: {
+            font: "20px monospace",
+            fill: "#ffffff",
+          },
+        });
+        madeByText.setOrigin(0.5, 0.5);
+
+        // tai collective logo
+        this.add
+          .image(width / 2, height / 2 + 60, "tc-logo")
+          .setDisplaySize(120, 120);
+
+        // loading bar
+        var progressBar = this.add.graphics();
+        var progressBox = this.add.graphics();
+        progressBox.fillStyle(0x222222, 0.8);
+        progressBox.fillRect(
+          game.config.width / 2 - 320 / 2,
+          game.config.height / 2 - 100,
+          320,
+          50
+        );
+
+        // font plugin
+        this.plugins.get("rexwebfontloaderplugin").addToScene(this);
+        this.load.rexWebFont({
+          google: {
+            families: ["Freckle Face", "Finger Paint", "Nosifer"],
+          },
+        });
+
+        this.load.scenePlugin(
+          "rexuiplugin",
+          "https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexuiplugin.min.js",
+          "rexUI",
+          "rexUI"
+        );
+
+        //  Load the Google WebFont Loader script
+        this.load.script(
+          "webfont",
+          "//ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js"
+        );
+
+
+        // map
+        this.load.tilemapTiledJSON("map", "./game_assets/kydenMap.json")
+        // // tile spritesheets used in map
+        // this.load.image(
+        //   "map-tiles",
+        //   "./game_assets/map-tilesheet.png"
+        // );
+
+        // // tane
+        // this.load.spritesheet(
+        //   "tane-run",
+        //   "./game_assets/tane-run.png",
+        //   {
+        //     frameWidth: 128,
+        //     frameHeight: 128,
+        //   }
+        // );
+        // this.load.spritesheet(
+        //   "vegetables",
+        //   "./game_assets/Fantasy Crops.png",
+        //   {
+        //     frameWidth: 16,
+        //     frameHeight: 16,
+        //   }
+        // );
+        // // this.load.spritesheet(
+        // //   'enemies',
+        // //   './game_assets/enemies.png',
+        // //   {
+        // //     frameWidth: 16,
+        // //     frameHeight: 16,
+        // //   });
+
+        // // shout out to tile-extruder cli
+        // // https://github.com/sporadic-labs/tile-extruder
+        // this.load.spritesheet(
+        //   'enemies',
+        //   './game_assets/enemies-extruded.png',
+        //   {
+        //     frameWidth: 16,
+        //     frameHeight: 16,
+        //     margin: 1,
+        //     spacing: 2,
+        //   });
+        // // fireworks
+        // this.load.spritesheet(
+        //   "fireworksBlue",
+        //   "https://cdn.glitch.global/d000a9ec-7a88-4c14-9cdd-f194575da68e/Explosion_Crystals_Blue-sheet.png?v=1649907669760",
+        //   {
+        //     frameWidth: 88,
+        //     frameHeight: 86,
+        //   }
+        // );
+        // this.load.spritesheet(
+        //   "fireworksRocket",
+        //   "https://cdn.glitch.global/d000a9ec-7a88-4c14-9cdd-f194575da68e/Rocket_Blue.png-sheet.png?v=1649908638368",
+        //   {
+        //     frameWidth: 7,
+        //     frameHeight: 52,
+        //   }
+        // );
+        // this.load.spritesheet(
+        //   "dreamDiamond",
+        //   "https://cdn.glitch.global/d000a9ec-7a88-4c14-9cdd-f194575da68e/dream-piece.png?v=1650241420024",
+        //   {
+        //     frameWidth: 480,
+        //     frameHeight: 480,
+        //   }
+        // );
+
+        // // veges
+        // this.load.image('carrot', './game_assets/carrot.png');
+        // this.load.image('kumara', './game_assets/kumara.png');
+        // this.load.image('cabbage', './game_assets/cabbage.png');
+        // this.load.image('pumpkin', './game_assets/pumpkin.png');
+        // // hud
+        // this.load.image('hangipit', './game_assets/hangi-pit.png');
+        // this.load.image('barmeter', './game_assets/barmetercontainer.png');
+        // this.load.image('bar-carrot', './game_assets/bar-carrot.png');
+        // this.load.image('bar-cabbage', './game_assets/bar-cabbage.png');
+        // this.load.image('bar-pumpkin', './game_assets/bar-pumpkin.png');
+        // this.load.image('bar-kumara', './game_assets/bar-kumara.png');
+        // this.load.image('emptybarmeter', './game_assets/emptybarmeter.png');
+        // // other
+        // this.load.image('taiaha', './game_assets/taiaha.png');
+        // this.load.image('vegeGardenHangi', './game_assets/vege-garden-hangi.png');
+        // this.load.image('dirt', './game_assets/dirt.png');
+        // this.load.image("background", "https://cdn.glitch.com/f605c78d-cefb-481c-bb78-d09a6bffa1e6%2Fbg_layer1.png?v=1603601139028");
+        // this.load.image("kowhaiwhai", "https://cdn.glitch.com/cd67e3a9-81c5-485d-bf8a-852d63395343%2Fkowhaiwhai.png?v=1609829230478");
+
+        // // sounds
+        // this.load.audio("score", "./game_assets/score.wav");
+        // this.load.audio("plant", "./game_assets/plant.wav");
+        // this.load.audio("uproot", "./game_assets/uproot.wav");
+        // this.load.audio("throw", "./game_assets/throw.mp3");
+        // this.load.audio("mouse-squeak", "./game_assets/mouse-squeak.wav");
+        // this.load.audio("fireworksSound", "https://cdn.glitch.global/d000a9ec-7a88-4c14-9cdd-f194575da68e/fireworks.wav?v=1649910586351");
+        // this.load.audio("cheer", "https://cdn.glitch.com/cd67e3a9-81c5-485d-bf8a-852d63395343%2Fcheer.wav?v=1609829231162");
+        // this.load.audio("music", "./game_assets/Haunting-Tai-Collective.mp3");
+
+        // map
+        // this.load.tilemapTiledJSON("map", "./kydenMap.json")
+        // tile spritesheets used in map
+        this.load.image(
+          "map-tiles",
+          "https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/tilesheet_complete.png?v=1648176002287"
+        );
+
+        // tane
+        this.load.spritesheet(
+          "tane-run",
+          "https://cdn.glitch.com/ac36cc02-7b80-46b7-9cad-fe737d8b49ab%2FRun-Strips.png?v=1604390804895",
+          {
+            frameWidth: 128,
+            frameHeight: 128,
+          }
+        );
+        this.load.spritesheet(
+          "vegetables",
+          "https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/Fantasy%20Crops.png?v=1654638527429",
+          {
+            frameWidth: 16,
+            frameHeight: 16,
+          }
+        );
+        this.load.spritesheet(
+          'enemies',
+          'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/enemies-extruded.png?v=1656983019107',
+          {
+            frameWidth: 16,
+            frameHeight: 16,
+            margin: 1,
+            spacing: 2,
+          });
+        // fireworks
+        this.load.spritesheet(
+          "fireworksBlue",
+          "https://cdn.glitch.global/d000a9ec-7a88-4c14-9cdd-f194575da68e/Explosion_Crystals_Blue-sheet.png?v=1649907669760",
+          {
+            frameWidth: 88,
+            frameHeight: 86,
+          }
+        );
+        this.load.spritesheet(
+          "fireworksRocket",
+          "https://cdn.glitch.global/d000a9ec-7a88-4c14-9cdd-f194575da68e/Rocket_Blue.png-sheet.png?v=1649908638368",
+          {
+            frameWidth: 7,
+            frameHeight: 52,
+          }
+        );
+        this.load.spritesheet(
+          "dreamDiamond",
+          "https://cdn.glitch.global/d000a9ec-7a88-4c14-9cdd-f194575da68e/dream-piece.png?v=1650241420024",
+          {
+            frameWidth: 480,
+            frameHeight: 480,
+          }
+        );
+
+        // veges
+        this.load.image('carrot', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/carrot.png?v=1655160349063');
+        this.load.image('kumara', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/kumara.png?v=1655160349062');
+        this.load.image('cabbage', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/cabbage.png?v=1655160349063');
+        this.load.image('pumpkin', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/pumpkin.png?v=1655160349063');
+        // hud
+        this.load.image('hangipit', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/hangi-pit.png?v=1656983096755');
+        this.load.image('barmeter', 'https://cdn.glitch.com/ac36cc02-7b80-46b7-9cad-fe737d8b49ab%2Fenergycontainer.png?v=1610787948530');
+        this.load.image('bar-carrot', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/bar-carrot.png?v=1656982870716');
+        this.load.image('bar-cabbage', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/bar-cabbage.png?v=1656982875814');
+        this.load.image('bar-pumpkin', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/bar-pumpkin.png?v=1656982869118');
+        this.load.image('bar-kumara', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/bar-kumara.png?v=1656982870819');
+        this.load.image('emptybarmeter', 'https://cdn.glitch.com/ac36cc02-7b80-46b7-9cad-fe737d8b49ab%2Fenergybar-empty.png?v=1610787948077');
+        // other
+        this.load.image('taiaha', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/taiaha.png?v=1656982866788');
+        this.load.image('vegeGardenHangi', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/vege-garden-hangi.png?v=1656982865922');
+        this.load.image('dirt', 'https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/dirt.png?v=1656982860362');
+        this.load.image("background", "https://cdn.glitch.com/f605c78d-cefb-481c-bb78-d09a6bffa1e6%2Fbg_layer1.png?v=1603601139028");
+        this.load.image("kowhaiwhai", "https://cdn.glitch.com/cd67e3a9-81c5-485d-bf8a-852d63395343%2Fkowhaiwhai.png?v=1609829230478");
+
+        // sounds
+        this.load.audio("score", "https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/score.wav?v=1656983259614");
+        this.load.audio("plant", "https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/plant.wav?v=1656982873952");
+        this.load.audio("uproot", "https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/uproot.wav?v=1656982872353");
+        this.load.audio("throw", "https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/throw.mp3?v=1656983259614");
+        this.load.audio("mouse-squeak", "https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/mouse-squeak.wav?v=1656983263252");
+        this.load.audio("fireworksSound", "https://cdn.glitch.global/d000a9ec-7a88-4c14-9cdd-f194575da68e/fireworks.wav?v=1649910586351");
+        this.load.audio("cheer", "https://cdn.glitch.com/cd67e3a9-81c5-485d-bf8a-852d63395343%2Fcheer.wav?v=1609829231162");
+        this.load.audio("music", "https://cdn.glitch.global/78ec5148-9c53-4642-b1ec-dc383d7d90c0/Haunting-Tai-Collective.mp3?v=1656996590859");
+
+        // game over assets preload in intro-scene
+        this.load.audio(
+          "die",
+          "https://cdn.glitch.global/d000a9ec-7a88-4c14-9cdd-f194575da68e/death_7_sean.mp3?v=1652937752144"
+        );
+        this.load.audio(
+          "end-music",
+          "https://cdn.glitch.com/cd67e3a9-81c5-485d-bf8a-852d63395343%2Fgameover-music.mp3?v=1609829224481"
+        );
+
+        this.load.image(
+          "kowhaiwhai",
+          "https://cdn.glitch.com/cd67e3a9-81c5-485d-bf8a-852d63395343%2Fkowhaiwhai.png?v=1609829230478"
+        );
+
+
+        // Pre-loader
+        this.load.on("progress", function (value) {
+          console.log(value);
+          progressBar.clear();
+          progressBar.fillStyle(0xffffff, 1);
+          progressBar.fillRect(
+            game.config.width / 2 - 300 / 2,
+            game.config.height / 2 - 90,
+            300 * value,
+            30
+          );
+        });
+        // this.load.on("fileprogress", function (file) {
+        //   console.log(file.src);
+        // });
+        this.load.on("complete", function () {
+          console.log("complete");
+          progressBar.destroy();
+          progressBox.destroy();
+          loadingText.destroy();
+        });
+
+      }
+      // create for the intro scene
+      create() {
+
+        createMap(this)
+        createAnimations(this)
+
+        // dialog ONE (Using rexUI)
+        this.dialog1 = this.rexUI.add
+          .dialog({
+            x: game.config.width / 2,
+            y: game.config.height / 2,
+            width: 200,
+            background: this.rexUI.add.roundRectangle(0, 0, 100, 100, 10, 0x533d8e),
+            content: this.createLabel(
+              this,
+              "Plant veges in the garden. Once grown put them in the hangi.",
+              20,
+              20
+            ),
+            description: this.add
+              .image(0, 0, "vegeGardenHangi").setDisplaySize(300, 100)
+            ,
+            actions: [this.createLabel(this, "NEXT", 10, 10)],
+            space: {
+              left: 20,
+              right: 20,
+              top: 50,
+              bottom: 20,
+              content: 20,
+              toolbarItem: 5,
+              choice: 15,
+              action: 15,
+              description: 25,
+              descriptionLeft: 50,
+              descriptionRight: 50,
+            },
+            align: {
+              content: "center",
+              description: "center",
+              actions: "right", // 'center'|'left'|'right'
+            },
+            click: {
+              mode: "release",
+            },
+          })
+          .layout()
+          //  .drawBounds(this.add.graphics(), 0xff0000)
+          .popUp(1000)
+          .setDepth(600);
+
+        // dialog TWO
+        this.dialog2 = this.rexUI.add
+          .dialog({
+            x: game.config.width / 2,
+            y: game.config.height / 2,
+            width: 300,
+            background: this.rexUI.add.roundRectangle(0, 0, 100, 100, 20, 0x533d8e),
+            content: this.createLabel(
+              this,
+              "Watch out for the kiore.  Make sure they don't get into the māra kai",
+              10,
+              10
+            ),
+            description: this.add
+              .sprite(0, 0, "enemies")
+              .play("rat2Walk-leftRight")
+              .setDisplaySize(50, 50),
+            actions: [this.createLabel(this, "START GAME", 10, 10)],
+            space: {
+              left: 20,
+              right: 20,
+              top: 50,
+              bottom: 20,
+              content: 20,
+              toolbarItem: 5,
+              choice: 15,
+              action: 15,
+              descriptionLeft: 300,
+              descriptionRight: 300,
+            },
+            align: {
+              content: "center",
+              actions: "right", // 'center'|'left'|'right'
+            },
+            click: {
+              mode: "release",
+            },
+          })
+          .layout()
+          //  .drawBounds(this.add.graphics(), 0xff0000)
+          .setVisible(false)
+          .setDepth(600);
+
+        var tween = this.tweens.add({
+          targets: [this.dialog1, this.dialog2],
+          scaleX: 1,
+          scaleY: 1,
+          ease: "Bounce", // 'Cubic', 'Elastic', 'Bounce', 'Back'
+          duration: 1000,
+          repeat: 0, // -1: infinity
+          yoyo: false,
+        });
+
+        this.dialog1.on(
+          "button.click",
+          function (button) {
+            if (button.text === "NEXT") {
+              this.dialog1.setVisible(false);
+              this.dialog2.setVisible(true).popUp(1000);
+            }
+          },
+          this
+        );
+
+        this.dialog2.on(
+          "button.click",
+          function (button) {
+            if (button.text === "START GAME") {
+              console.log("starting game");
+              // this.scene.start("game-hud")
+              this.scene.start("game-play");
+            }
+          },
+          this
+        );
+      }
+      // settings for the dialog labels
+      // settings for the dialog labels
+      createLabel(scene, text, spaceTop, spaceBottom) {
+        return scene.rexUI.add.label({
+          width: 40, // Minimum width of round-rectangle
+          height: 40, // Minimum height of round-rectangle
+          background: scene.rexUI.add.roundRectangle(0, 0, 100, 40, 20, 0x8f80b6),
+          text: scene.add
+            .text(0, 0, text, {
+              fontFamily: "Freckle Face",
+              fontSize: "24px",
+              color: "#ffffff",
+            })
+            .setShadow(2, 2, "#333333", 2, false, true)
+            .setAlign("center"),
+          space: {
+            left: 10,
+            right: 10,
+            top: spaceTop,
+            bottom: spaceBottom,
+          },
+        });
+      }
+      update() { }
+    }
+
+
+
+    /* ======================
+    GAME PLAY SCENE   <<---- THIS IS THE ACTUAL GAME
+=========================*/
+    class GamePlay extends Phaser.Scene {
+      constructor() {
+        super({
+          key: "game-play",
+          pack: {
+            files: [
+              {
+                type: "plugin",
+                key: "rexvirtualjoystickplugin",
+                url: "https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexvirtualjoystickplugin.min.js",
+                start: true,
+              },
+            ],
+          },
+        });
+      }
+      init() {
+        countdownTimer = 500;
+        hangiPercentValue = 0;
+      }
+      preload() {
+        // font plugin
+        this.plugins.get("rexwebfontloaderplugin").addToScene(this);
+        // this.plugins.get("rexVirtualJoystick").addToScene(this);
+        this.load.rexWebFont({
+          google: {
+            families: ["Freckle Face", "Finger Paint", "Nosifer"],
+          },
+        });
+        this.load.scenePlugin(
+          "rexuiplugin",
+          "https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexuiplugin.min.js",
+          "rexUI",
+          "rexUI"
+        );
+      }
+
+      create() {
+
+        startMusic(this)
+
+        createMap(this)
+        createHud(this)
+        createPlayer(this)
+        createControls(this)
+        createAnimations(this)
+        createVegetables(this)
+        createCamera(this)
+        createColliders(this)
+
+        createTimer(this)
+        createHangiPercentage(this)
+
+        createJoystick(this)
+
+
+
+      }
+      // End of create()
+
+      update(time, delta) {
+        // player controls
+        this.player.body.setVelocity(0);
+
+        // shoot control
+        // thanks: https://steemit.com/utopian-io/@onepice/move-objects-according-to-the-mouse-position-with-phaser-3
+        if (this.input.pointer2.isDown && time > lastFired) {
+          // sound
+          this.sound.play("throw");
+          let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, getRelativePositionToCanvas(this.input.pointer2, this.cameras.main).x, getRelativePositionToCanvas(this.input.pointer2, this.cameras.main).y)
+          this.bullet = this.physics.add.sprite(this.player.x, this.player.y, 'taiaha');
+          this.bullet.setScale(0.4).setRotation(angle + Math.PI / 2)
+          this.bullet.body.setSize(this.bullet.width, this.bullet.width)
+
+          //move to mouse position 
+          this.physics.moveTo(this.bullet, getRelativePositionToCanvas(this.input.pointer2, this.cameras.main).x, getRelativePositionToCanvas(this.input.pointer2, this.cameras.main).y, 500);
+          this.physics.add.overlap(this.bullet, this.enemies, enemyHitByTaiaha, false, this)
+
+          lastFired = time + 200;
+        }
+        else if (this.input.pointer1.isDown && (!this.cursorKeys.left.isDown && !this.cursorKeys.right.isDown && !this.cursorKeys.up.isDown && !this.cursorKeys.down.isDown) && !((this.input.pointer1.x > 83 && this.input.pointer1.x < 116) && (this.input.pointer1.y > 254 && this.input.pointer1.y < 286)) && time > lastFired) {
+          // console.log("this.input", this.input)
+          // sound
+          this.sound.play("throw");
+          let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, getRelativePositionToCanvas(this.input.pointer1, this.cameras.main).x, getRelativePositionToCanvas(this.input.pointer1, this.cameras.main).y)
+          // let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, this.input.pointer1.x + (this.cameras.main.scrollX * 0.5), this.input.pointer1.y + (this.cameras.main.scrollY + 0.5))
+
+          this.bullet = this.physics.add.sprite(this.player.x, this.player.y, 'taiaha');
+          this.bullet.setScale(0.4).setRotation(angle + Math.PI / 2)
+          this.bullet.body.setSize(this.bullet.width, this.bullet.width)
+
+          //move to mouse position 
+          this.physics.moveTo(this.bullet, getRelativePositionToCanvas(this.input.pointer1, this.cameras.main).x, getRelativePositionToCanvas(this.input.pointer1, this.cameras.main).y, 500);
+          // console.log("touch:", { x: this.input.pointer1.x, y: this.input.pointer1.y })
+
+          this.physics.add.overlap(this.bullet, this.enemies, enemyHitByTaiaha, false, this)
+
+          lastFired = time + 200;
+        }
+
+
+        // Horizontal movement
+
+        if (this.cursorKeys.left.isDown) {
+          this.player.body.setVelocityX(-180);
+        } else if (this.cursorKeys.right.isDown) {
+          this.player.body.setVelocityX(180);
+          // this.player.play("taneRun")
+        }
+
+        // Vertical movement
+        if (this.cursorKeys.up.isDown) {
+          this.player.body.setVelocityY(-180);
+        } else if (this.cursorKeys.down.isDown) {
+          this.player.body.setVelocityY(180);
+        }
+
+        // Update the animation last and give left/right animations precedence over up/down animations
+        if (this.cursorKeys.left.isDown) {
+          this.player.anims.play("taneLeft", true);
+          this.player.flipX = false;
+        } else if (this.cursorKeys.right.isDown) {
+          this.player.anims.play("taneLeft", true);
+          this.player.flipX = true;
+        } else if (this.cursorKeys.up.isDown) {
+          this.player.anims.play("taneUp", true);
+        } else if (this.cursorKeys.down.isDown) {
+          this.player.anims.play("taneDown", true);
+        } else {
+          this.player.anims.stop();
+        }
+
+        // keep picked up vegetable above players head
+        this.carrotOnHead.x = this.player.x;
+        this.carrotOnHead.y = this.player.y - 30;
+        this.cabbageOnHead.x = this.player.x;
+        this.cabbageOnHead.y = this.player.y - 30;
+        this.kumaraOnHead.x = this.player.x;
+        this.kumaraOnHead.y = this.player.y - 30;
+        this.pumpkinOnHead.x = this.player.x;
+        this.pumpkinOnHead.y = this.player.y - 30;
+
+        // enemie animations
+        this.enemies.children.iterate((child) => {
+          // random rat skin
+          var randomRatAnim = Phaser.Math.RND.between(1, 4);
+
+          if (child.body.velocity.y > 1 && child.body.velocity.y > Math.abs(child.body.velocity.x)) {
+            child.anims.play("rat2Walk-down", true);
+          } else if (child.body.velocity.y < -1 && Math.abs(child.body.velocity.y) > Math.abs(child.body.velocity.x)) {
+            child.anims.play("rat2Walk-up", true);
+          } else if (child.body.velocity.x < -1 && Math.abs(child.body.velocity.x) > Math.abs(child.body.velocity.y)) {
+            child.anims.play("rat2Walk-leftRight", true);
+            child.flipX = true;
+          } else if (child.body.velocity.x > 1 && Math.abs(child.body.velocity.x) > Math.abs(child.body.velocity.y)) {
+            child.anims.play("rat2Walk-leftRight", true);
+            child.flipX = false;
+          }
+        })
+
+      }
+      // End of update()
+
+
+      // timer for countdown
+
+      loadTimer() {
+        if (countdownTimer === 0) {
+          console.log("end");
+          this.scene.start("game-over");
+        } else {
+          countdownTimer -= 1;
+          this.timer.setText("Time: " + countdownTimer);
+        }
+      }
+
+      launchFireworks() {
+        this.sound.play("fireworksSound");
+        const bottomOfScreen = this.cameras.main.height + 200
+        const rand1x = Phaser.Math.Between(0, 800);
+        const rand1y = Phaser.Math.Between(50, 500);
+        const rand2x = Phaser.Math.Between(0, 800);
+        const rand2y = Phaser.Math.Between(50, 500);
+        const fireworks = this.add
+          .sprite(rand1x, this.player.y + 500, "fireworksRocket")
+          .setDepth(1006);
+        const fireworks1 = this.add
+          .sprite(rand2x, this.player.y + 500, "fireworksRocket")
+          .setDepth(1006);
+        fireworks.play("fireworksRocket");
+        this.tweens
+          .add({
+            targets: fireworks,
+            y: bottomOfScreen - rand1y,
+            duration: 2000,
+            ease: "Power2",
+          })
+          .on("complete", (anim, frame) => {
+            fireworks.setScale(2);
+            fireworks.play("fireworksBlue");
+          });
+        this.tweens
+          .add({
+            targets: fireworks1,
+            y: bottomOfScreen - rand2y,
+            duration: 2500,
+            ease: "Power2",
+          })
+          .on("complete", (anim, frame) => {
+            fireworks1.setScale(2);
+            fireworks1.play("fireworksBlue");
+          });
+      }
+
+      createLabel(scene, text, spaceTop, spaceBottom) {
+        return scene.rexUI.add.label({
+          width: 40, // Minimum width of round-rectangle
+          height: 40, // Minimum height of round-rectangle
+          background: scene.rexUI.add.roundRectangle(0, 0, 100, 40, 20, 0x8f80b6),
+          text: scene.add
+            .text(0, 0, text, {
+              fontFamily: "Freckle Face",
+              fontSize: "24px",
+              color: "#ffffff",
+            })
+            .setShadow(2, 2, "#333333", 2, false, true)
+            .setAlign("center"),
+          space: {
+            left: 10,
+            right: 10,
+            top: spaceTop,
+            bottom: spaceBottom,
+          },
+        });
+      }
+    }
+
+
+    /* ======================
+    GAME OVER SCENE
+=========================*/
+    class GameOver extends Phaser.Scene {
+      constructor() {
+        super({
+          key: "game-over",
+        });
+      }
+      // propped in data
+      init(data) {
+        console.log("game over scene started");
+      }
+      // Game Over scene preload
+      preload() {
+
+      }
+      // Game Over scene create
+      create() {
+        this.cameras.main.setBackgroundColor("lightgrey");
+
+        // music
+        this.scene.stop("game-play");
+        this.sound.stopAll();
+        this.sound.play("die");
+        // load song
+        const musicConfig = {
+          volume: 0.5,
+          loop: true,
+          delay: 3000,
+        };
+        this.endMusic = this.sound.add("end-music", musicConfig);
+        this.endMusic.play();
+
+        const width = this.scale.width;
+        const height = this.scale.height;
+
+        this.add
+          .tileSprite(
+            game.config.width / 2,
+            game.config.height / 2 + 500,
+            game.config.width,
+            3000,
+            "kowhaiwhai"
+          )
+          .setScrollFactor(0, 0.25)
+          .setAlpha(0.2)
+          .setScale(1);
+
+        WebFont.load({
+          google: {
+            families: ["Freckle Face", "Finger Paint", "Nosifer"],
+          },
+          active: () => {
+            // game over
+            this.gameOver = this.add
+              .text(
+                game.config.width / 2,
+                game.config.height / 2 - 100,
+                "Game Over",
+                {
+                  fontFamily: "Freckle Face",
+                  fontSize: 50,
+                  color: "#ffffff",
+                }
+              )
+              .setShadow(2, 2, "#333333", 2, false, true);
+            this.gameOver.setAlign("center");
+            this.gameOver.setOrigin();
+            this.gameOver.setScrollFactor(0);
+
+            // restart button
+            this.pressRestart = this.add
+              .text(
+                game.config.width / 2,
+                game.config.height / 2,
+                "Restart Game",
+                {
+                  fontFamily: "Finger Paint",
+                  fontSize: 20,
+                  color: "#ffffff",
+                }
+              )
+              .setShadow(2, 2, "#333333", 2, false, true);
+            this.pressRestart.setAlign("center");
+            this.pressRestart.setOrigin();
+            this.pressRestart.setScrollFactor(0);
+            this.pressRestart.setInteractive()
+            this.pressRestart.on('pointerdown', () => this.scene.start("game-play"));
+
+            // quit button
+            this.pressQuit = this.add
+              .text(
+                game.config.width / 2,
+                game.config.height / 2 + 80,
+                "Quit Game",
+                {
+                  fontFamily: "Finger Paint",
+                  fontSize: 20,
+                  color: "#ffffff",
+                }
+              )
+              .setShadow(2, 2, "#333333", 2, false, true);
+            this.pressQuit.setAlign("center");
+            this.pressQuit.setOrigin();
+            this.pressQuit.setScrollFactor(0);
+            this.pressQuit.setInteractive()
+            this.pressQuit.on('pointerdown', () => {
+              //TODO: @FFF quit back to app
+              console.log("quit back to app")
+            });
+          },
+        });
+
+
+      }
+    }
+
+    function startMusic(context) {
+      context.sound.stopAll()
+      const musicConfig = {
+        volume: 0.5,
+        loop: true,
+        delay: 3000,
+      };
+      context.music = context.sound.add("music", musicConfig);
+      context.music.play(context.musicConfig);
+    }
+
+    function createMap(context) {
+      // add map
+      context.map = context.make.tilemap({
+        key: "map",
+      });
+
+      // add map tiles (1st param name of tilesheet in Tiled, 2nd param key for tilesheet asset)
+      const groundTileset = context.map.addTilesetImage("tilesheet_complete", "map-tiles");
+
+      // add Tiled layers
+      const base = context.map
+        .createLayer("Baseplate", groundTileset, 0, 0)
+        .setOrigin(0.5, 0.5);
+      const gardenExtras = context.map
+        .createLayer("Garden Xtras", groundTileset, 0, 0)
+        .setOrigin(0.5, 0.5);
+      const littleStones = context.map
+        .createLayer("Little Stones", groundTileset, 0, 0)
+        .setOrigin(0.5, 0.5);
+      const hangiStones = context.map
+        .createLayer("Hangi Stones", groundTileset, 0, 0)
+        .setOrigin(0.5, 0.5)
+        .setScale(0.5);
+      const trees = context.map
+        .createLayer("Trees", groundTileset, 0, 0)
+        .setOrigin(0.5, 0.5)
+        .setDepth(500);
+
+
+      // scale map (its a bit too big, gonna shrink it by 50%)
+      base.setScale(mapScale, mapScale);
+      gardenExtras.setScale(mapScale, mapScale);
+      littleStones.setScale(mapScale, mapScale);
+      trees.setScale(mapScale, mapScale);
+
+      // get Garden zone from Tiled layer
+      context.garden = context.map.findObject("Garden", (obj) => obj.name === "garden");
+      // make it a phaser zone
+      context.garden = context.add
+        .zone(context.garden.x * mapScale, context.garden.y * mapScale, context.garden.width, context.garden.height)
+        .setOrigin(0, 0)
+        .setScale(mapScale)
+      // add physics to the garden zone
+      context.physics.world.enable(context.garden);
+
+      // get Hangi zone from Tiled layer
+      context.hangi = context.map.findObject("Hangi", (obj) => obj.name === "hangi");
+      // make it a phaser zone
+      context.hangi = context.add
+        .zone(context.hangi.x * mapScale, context.hangi.y * mapScale, context.hangi.width, context.hangi.height)
+        .setOrigin(0, 0)
+        .setScale(mapScale)
+      // add physics to the garden zone
+      context.physics.world.enable(context.hangi);
+
+      // enemies group
+      context.enemies = context.physics.add.group({
+        allowGravity: false,
+        immovable: false,
+      });
+
+      // don't go out of the map
+      context.physics.world.bounds.width = context.map.widthInPixels;
+      context.physics.world.bounds.height = context.map.heightInPixels;
+
+
+    }
+    function createHud(context) {
+
+
+      // hangi hud
+      context.hangiHud = context.add.image(context.game.config.width / 2 + 250 - 30, 315, "hangipit").setScale(0.1).setScrollFactor(0).setDepth(900)
+      context.carrotHud = context.add.image(context.game.config.width / 2 + 285 - 30, 295, "carrot").setScrollFactor(0).setDepth(900)
+      context.cabbageHud = context.add.image(context.game.config.width / 2 + 285 - 30, 310, "cabbage").setScrollFactor(0).setDepth(900)
+      context.pumpkinHud = context.add.image(context.game.config.width / 2 + 285 - 30, 325, "pumpkin").setScrollFactor(0).setDepth(900)
+      context.kumaraHud = context.add.image(context.game.config.width / 2 + 285 - 30, 340, "kumara").setScrollFactor(0).setDepth(900)
+      // hud values
+      const vegeTokenValue = 9;
+      const barDisplayWidth = 75
+      context.barIncrement = barDisplayWidth / vegeTokenValue
+      // carrot bar
+      context.carrotBarHud = context.add.image(context.game.config.width / 2 + 295 - 30, 290, "barmeter").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.emptyCarrotBarMeter = context.add.image(context.game.config.width / 2 + 295 - 30, 290, "emptybarmeter").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.carrotBarFill = context.add.image(context.game.config.width / 2 + (298 - 30) - barDisplayWidth, 292, "bar-carrot").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.carrotBarFill.mask = new Phaser.Display.Masks.BitmapMask(
+        context,
+        context.emptyCarrotBarMeter
+      );
+      // cabbage bar
+      context.cabbageBarHud = context.add.image(context.game.config.width / 2 + 295 - 30, 305, "barmeter").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.emptyCabbageBarMeter = context.add.image(context.game.config.width / 2 + 295 - 30, 305, "emptybarmeter").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.cabbageBarFill = context.add.image(context.game.config.width / 2 + (298 - 30) - barDisplayWidth, 307, "bar-cabbage").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.cabbageBarFill.mask = new Phaser.Display.Masks.BitmapMask(
+        context,
+        context.emptyCabbageBarMeter
+      );
+
+      context.pumpkinBarHud = context.add.image(context.game.config.width / 2 + 295 - 30, 320, "barmeter").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.emptyPumpkinBarMeter = context.add.image(context.game.config.width / 2 + 295 - 30, 320, "emptybarmeter").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.pumpkinBarFill = context.add.image(context.game.config.width / 2 + (298 - 30) - barDisplayWidth, 322, "bar-pumpkin").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.pumpkinBarFill.mask = new Phaser.Display.Masks.BitmapMask(
+        context,
+        context.emptyPumpkinBarMeter
+      );
+
+      context.kumaraBarHud = context.add.image(context.game.config.width / 2 + 295 - 30, 335, "barmeter").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.emptyKumaraBarMeter = context.add.image(context.game.config.width / 2 + 295 - 30, 335, "emptybarmeter").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.kumaraBarFill = context.add.image(context.game.config.width / 2 + (298 - 30) - barDisplayWidth, 337, "bar-kumara").setScale(0.15).setOrigin(0).setScrollFactor(0).setDepth(900)
+      context.kumaraBarFill.mask = new Phaser.Display.Masks.BitmapMask(
+        context,
+        context.emptyKumaraBarMeter
+      );
+
+    }
+    function createPlayer(context) {
+      // add player sprite
+      context.player = context.physics.add.sprite(context.game.config.width / 2, context.game.config.height / 2, "tane-run");
+      context.player.setScale(mapScale, mapScale)
+      context.player.body.setSize(context.player.width - 100, context.player.height - 50).setOffset(50, 25);
+      context.player.setDepth(400)
+
+      // add vegetable icons above players head (hidden to begin)
+      context.carrotOnHead = context.add
+        .image(context.player.x, context.player.y - 30, "carrot")
+        .setScale(1)
+        .setVisible(false);
+      context.cabbageOnHead = context.add
+        .image(0, 0, "cabbage")
+        .setScale(1)
+        .setVisible(false);
+      context.kumaraOnHead = context.add
+        .image(0, 0, "kumara")
+        .setScale(1)
+        .setVisible(false);
+      context.pumpkinOnHead = context.add
+        .image(0, 0, "pumpkin")
+        .setScale(1)
+        .setVisible(false);
+
+      context.physics.world.setBounds(0, 0, context.map.widthInPixels * mapScale, context.map.heightInPixels * mapScale);
+      context.player.setCollideWorldBounds(true);
+
+
+    }
+    function createControls(context) {
+      // create user input via keyboard keys
+      context.cursors = context.input.keyboard.createCursorKeys();
+      //  We need 3 extra pointers, as we only get 1 by default
+      // https://phaser.io/examples/v3/view/input/multitouch/two-touch-inputs
+      context.input.addPointer(3);
+
+    }
+    function createAnimations(context) {
+      // player animations
+      context.anims.create({
+        key: "taneLeft",
+        frames: context.anims.generateFrameNumbers("tane-run", {
+          frames: [16, 17, 18, 19, 20, 21, 22, 23],
+        }),
+        frameRate: 18,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "taneDown",
+        frames: context.anims.generateFrameNumbers("tane-run", {
+          frames: [0, 1, 2, 3, 4, 5, 6, 7],
+        }),
+        frameRate: 18,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "taneUp",
+        frames: context.anims.generateFrameNumbers("tane-run", {
+          frames: [8, 9, 10, 11, 12, 13, 14, 15],
+        }),
+        frameRate: 18,
+        repeat: -1,
+      });
+      // vegetable anims
+      context.anims.create({
+        key: "carrotGrow",
+        frames: context.anims.generateFrameNumbers("vegetables", {
+          frames: [0, 1, 2, 3, 4, 6],
+        }),
+        frameRate: 0.5,
+        repeat: 0,
+      });
+      context.anims.create({
+        key: "cabbageGrow",
+        frames: context.anims.generateFrameNumbers("vegetables", {
+          frames: [56, 57, 58, 59, 60, 62],
+        }),
+        frameRate: 0.5,
+        repeat: 0,
+      });
+      context.anims.create({
+        key: "kumaraGrow",
+        frames: context.anims.generateFrameNumbers("vegetables", {
+          frames: [14, 15, 16, 17, 18, 20],
+        }),
+        frameRate: 0.5,
+        repeat: 0,
+      });
+      context.anims.create({
+        key: "pumpkinGrow",
+        frames: context.anims.generateFrameNumbers("vegetables", {
+          frames: [28, 29, 30, 31, 32, 34],
+        }),
+        frameRate: 0.5,
+        repeat: 0,
+      });
+
+
+      context.anims.create({
+        key: "rat1Walk-leftRight",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [148, 149, 150, 151],
+        }),
+        frameRate: 10,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "rat2Walk-leftRight",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [156, 157, 158, 159],
+        }),
+        frameRate: 15,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "rat1Walk-down",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [164, 165, 166, 167],
+        }),
+        frameRate: 10,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "rat2Walk-down",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [172, 173, 174, 175],
+        }),
+        frameRate: 15,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "rat1Walk-up",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [180, 181, 182, 183],
+        }),
+        frameRate: 10,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "rat2Walk-up",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [188, 189, 190, 191],
+        }),
+        frameRate: 15,
+      });
+      // rat 3&4
+      context.anims.create({
+        key: "rat3Walk-leftRight",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [196, 197, 198, 199],
+        }),
+        frameRate: 10,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "rat4Walk-leftRight",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [204, 205, 206, 207],
+        }),
+        frameRate: 15,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "rat3Walk-down",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [212, 213, 214, 215],
+        }),
+        frameRate: 10,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "rat4Walk-down",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [220, 221, 222, 223],
+        }),
+        frameRate: 15,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "rat3Walk-up",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [228, 229, 230, 231],
+        }),
+        frameRate: 10,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "rat4Walk-up",
+        frames: context.anims.generateFrameNumbers("enemies", {
+          frames: [236, 237, 238, 239],
+        }),
+        frameRate: 15,
+      });
+      context.anims.create({
+        key: "fireworksBlue",
+        frames: "fireworksBlue",
+        frameRate: 30,
+      });
+      context.anims.create({
+        key: "fireworksRocket",
+        frames: "fireworksRocket",
+        frameRate: 30,
+        repeat: -1,
+      });
+      context.anims.create({
+        key: "dreamDiamond",
+        frames: "dreamDiamond",
+        frameRate: 15,
+        repeat: -1,
+      });
+    }
+    function createVegetables(context) {
+      // vegetables group
+      context.vegetables = context.physics.add.group({
+        allowGravity: false,
+        immovable: true,
+      });
+      // randomly place first 4 vegetables
+      for (var i = 0; i < 4; i++) {
+        var randomVege = Phaser.Math.RND.between(0, 4);
+        // random x thats not in the garden
+        var randomX = Phaser.Math.RND.between(0, context.map.widthInPixels * mapScale);
+        var randomY = Phaser.Math.RND.between(0, context.map.heightInPixels * mapScale);
+        // parameters are x, y, width, height
+
+        console.log("map.widthInPixels", context.map.widthInPixels * mapScale)
+        console.log("map.heightInPixels", context.map.heightInPixels * mapScale)
+
+        switch (i) {
+          case 0:
+            // carrot
+            context.carrot = context.vegetables.create(randomX, randomY, "carrot");
+            context.carrot.setScale(1.5);
+            context.carrot.name = "carrot";
+            break;
+          case 1:
+            // cabbage
+            context.cabbage = context.vegetables.create(randomX, randomY, "cabbage");
+            context.cabbage.setScale(1.5);
+            context.cabbage.name = "cabbage";
+            break;
+          case 2:
+            // kumara
+            context.kumara = context.vegetables.create(randomX, randomY, "kumara");
+            context.kumara.setScale(1.5);
+            context.kumara.name = "kumara";
+            break;
+          case 3:
+            //pumpkin
+            context.pumpkin = context.vegetables.create(randomX, randomY, "pumpkin");
+            context.pumpkin.setScale(1.5);
+            context.pumpkin.name = "pumpkin";
+            break;
+        }
+      }
+
+      // Load Garden Vege positions (hidden to begin)
+      context.gardenObjects = context.physics.add.group({
+        allowGravity: false,
+        immovable: true,
+      });
+
+      // add garden vgetables in garden. (from tiled positions) (hiding all images to begin)
+      context.gardenCarrots = [];
+      context.gardenCabbage = [];
+      context.gardenKumara = [];
+      context.gardenPumpkin = [];
+      context.carrots = context.map.getObjectLayer("Vegtables");
+      context.carrots.objects.forEach((object) => {
+        if (object.type == "carrotPosition") {
+          let carrot = context.gardenObjects
+            .create(object.x * 0.5, object.y * 0.5, "carrot")
+            .setOrigin(0.5)
+            .setScale(1.5);
+          carrot.setVisible(false);
+          carrot.setDataEnabled()
+          carrot.setData('status', 'empty');
+          carrot.name = object.name;
+          context.gardenCarrots.push(carrot);
+        } else if (object.type == "cabbagePosition") {
+          let cabbage = context.gardenObjects
+            .create(object.x * 0.5, object.y * 0.5, "cabbage")
+            .setOrigin(0.5)
+            .setScale(1.5);
+          cabbage.setVisible(false);
+          cabbage.setDataEnabled()
+          cabbage.setData('status', 'empty');
+          cabbage.name = object.name;
+          context.gardenCabbage.push(cabbage);
+        } else if (object.type == "pumpkinPosition") {
+          let pumpkin = context.gardenObjects
+            .create(object.x * 0.5, object.y * 0.5, "pumpkin")
+            .setOrigin(0.5)
+            .setScale(1.5);
+          pumpkin.setVisible(false);
+          pumpkin.setDataEnabled()
+          pumpkin.setData('status', 'empty');
+          pumpkin.name = object.name;
+          context.gardenPumpkin.push(pumpkin);
+        } else if (object.type == "kumaraPosition") {
+          let kumara = context.gardenObjects
+            .create(object.x * 0.5, object.y * 0.5, "kumara")
+            .setOrigin(0.5)
+            .setScale(1.5);
+          kumara.setVisible(false);
+          kumara.setDataEnabled()
+          kumara.setData('status', 'empty');
+          kumara.name = object.name;
+          context.gardenKumara.push(kumara);
+        } else {
+          return;
+        }
+      });
+    }
+    function createCamera(context) {
+      // camera follow player
+      context.cameras.main.startFollow(context.player);
+      // set camera limits
+      context.cameras.main.setBounds(0, 0, context.map.widthInPixels * mapScale, context.map.heightInPixels * mapScale);
+
+      context.cameras.main.roundPixels = true
+
+    }
+    function createColliders(context) {
+      // overlap. if tane in garden, call inGarden function
+      context.physics.add.overlap(context.player, context.garden, inGarden, null, context);
+      // overlap. if tane in hangi, call inHangi function
+      context.physics.add.overlap(context.player, context.hangi, inHangi, null, context);
+      // player picks up vegetable items
+      context.physics.add.overlap(context.player, context.vegetables, gotVegetable, false, context);
+      // collider event for tane and enemies
+      context.physics.add.overlap(context.player, context.enemies, function (obj1, obj2) { gotHitByEnemy(obj1, obj2, context) });
+
+      // player picks up grown vegetables from garden
+      context.physics.add.overlap(context.player, context.gardenCarrots, gotGrownCarrot, false, context);
+      context.physics.add.overlap(context.player, context.gardenCabbage, gotGrownCabbage, false, context);
+      context.physics.add.overlap(context.player, context.gardenKumara, gotGrownKumara, false, context);
+      context.physics.add.overlap(context.player, context.gardenPumpkin, gotGrownPumpkin, false, context);
+    }
+
+    function getRelativePositionToCanvas(gameObject, camera) {
+      // thanks: https://stevenklambert.com/writing/phaser-3-game-object-position-relative-camera/
+      console.log("gameObject:", { x: gameObject.x, y: gameObject.y })
+      console.log("camera.worldView:", { x: camera.worldView.x, y: camera.worldView.y })
+      return {
+        x: (gameObject.x + camera.worldView.x),
+        y: (gameObject.y + camera.worldView.y)
+      }
+    }
+
+    function inGarden() {
+      if (vegeInHand == false) {
+        return
+      }
+      //reveal vegetable in garden that matches vegetable in hand that is returned to garden zone.
+      else if (vegeInHand == true && vegeInHandEquals == "carrot") {
+        // spawn a new vege
+        addRandomVege(this)
+        // if garden not yet full (9 carrot total can be planted)
+        if (emptyPatchForVege(this, 'carrot')) {
+          // sound
+          this.sound.play("plant");
+          // find the first 'empty' carrot patch
+          var plantingVege = this.gardenCarrots.find(obj => {
+            return obj.data.values.status === 'empty'
+          })
+          // send enemy after planted vege
+          addEnemy(this, plantingVege)
+          // reveal + play animation + on animation complete callback
+          plantingVege.setVisible(true)
+            .play("carrotGrow")
+            .on('animationcomplete', animationcomplete)
+            .setData('status', 'planted');
+
+        } else {
+          gardenFull(this)
+        }
+      }
+      else if (vegeInHand == true && vegeInHandEquals == "cabbage") {
+        // spawn a new vege
+        addRandomVege(this)
+        // if garden not yet full (9 cabbage total can be planted)
+        if (emptyPatchForVege(this, 'cabbage')) {
+          // sound
+          this.sound.play("plant");
+          // find the first 'empty' cabbage patch
+          var plantingVege = this.gardenCabbage.find(obj => {
+            return obj.data.values.status === 'empty'
+          })
+          // send enemy after planted vege
+          addEnemy(this, plantingVege)
+          // reveal + play animation + on animation complete callback
+          plantingVege.setVisible(true)
+            .play("cabbageGrow")
+            .on('animationcomplete', animationcomplete)
+            .setData('status', 'planted');
+        } else {
+          gardenFull(this)
+        }
+      }
+      else if (vegeInHand == true && vegeInHandEquals == "pumpkin") {
+        // spawn a new vege
+        addRandomVege(this)
+        // if garden not yet full (9 pumpkin total can be planted)
+        if (emptyPatchForVege(this, 'pumpkin')) {
+          // sound
+          this.sound.play("plant");
+          // find the first 'empty' pumpkin patch
+          var plantingVege = this.gardenPumpkin.find(obj => {
+            if (obj.data.values) {
+              return obj.data.values.status === 'empty'
+            }
+          })
+          // send enemy after planted vege
+          addEnemy(this, plantingVege)
+          // reveal + play animation + on animation complete callback
+          plantingVege.setVisible(true)
+            .play("pumpkinGrow")
+            .on('animationcomplete', animationcomplete)
+            .setData('status', 'planted');
+        } else {
+          gardenFull(this)
+        }
+      }
+      else if (vegeInHand == true && vegeInHandEquals == "kumara") {
+        addRandomVege(this)
+        // if garden not yet full (9 kumara total can be planted)
+        if (emptyPatchForVege(this, 'kumara')) {
+          // sound
+          this.sound.play("plant");
+          // find the first 'empty' kumara patch
+          var plantingVege = this.gardenKumara.find(obj => {
+            return obj.data.values.status === 'empty'
+          })
+          // send enemy after planted vege
+          addEnemy(this, plantingVege)
+          // reveal + play animation + on animation complete callback
+          plantingVege.setVisible(true)
+            .play("kumaraGrow")
+            .on('animationcomplete', animationcomplete)
+            .setData('status', 'planted');
+        } else {
+          gardenFull(this)
+        }
+      }
+      vegeInHandEquals = "";
+      vegeInHand = false;
+      this.carrotOnHead.setVisible(false);
+      this.cabbageOnHead.setVisible(false);
+      this.kumaraOnHead.setVisible(false);
+      this.pumpkinOnHead.setVisible(false);
+
+    }
+    function inHangi() {
+      if (grownVegeInHand == false || vegeInHand == true) {
+        return
+      }
+
+      if (Math.round(hangiPercentValue) >= 100 && gameWon == false) {
+        gameWon = true
+        //game won
+        console.log("game won")
+        // start fireworks
+        this.launchFireworks();
+        // launch fireworks to the amount of dreams collected
+        for (var i = 1; i < (countdownTimer / 10); i++) { //TODO: make fireworksd relative to remaining time
+          this.time.addEvent({
+            delay: i * 1000,
+            callback: this.launchFireworks,
+            callbackScope: this,
+          });
+        }
+
+        // after fireworks - hiwa gives dream piece
+        winGame(this)
+
+      }
+
+      else if (grownVegeInHand == true && grownVegeInHandEquals == "carrot") {
+        carrotsInHangi = carrotsInHangi + 1;
+        this.carrotBarFill.x += this.barIncrement
+      }
+      else if (grownVegeInHand == true && grownVegeInHandEquals == "cabbage") {
+        cabbageInHangi = cabbageInHangi + 1;
+        this.cabbageBarFill.x += this.barIncrement
+      }
+      else if (grownVegeInHand == true && grownVegeInHandEquals == "pumpkin") {
+        pumpkinInHangi = pumpkinInHangi + 1;
+        this.pumpkinBarFill.x += this.barIncrement
+      }
+      else if (grownVegeInHand == true && grownVegeInHandEquals == "kumara") {
+        kumaraInHangi = kumaraInHangi + 1;
+        this.kumaraBarFill.x += this.barIncrement
+      }
+      // sound
+      this.sound.play("score");
+      // reset vege on head
+      grownVegeInHandEquals = "";
+      grownVegeInHand = false;
+      this.carrotOnHead.setVisible(false);
+      this.cabbageOnHead.setVisible(false);
+      this.kumaraOnHead.setVisible(false);
+      this.pumpkinOnHead.setVisible(false);
+      enemyGoForRandomVege(this)
+      // hangi %
+      // total vege 36
+      hangiPercentValue += percentageIncrease
+      this.hangiPercent.setText(Math.round(hangiPercentValue) + "%")
+
+    }
+
+    function animationcomplete(animation, frame, gameObj, frameKey) {
+      console.log("Animation complete for " + gameObj.name)
+      gameObj.setData('status', 'grown')
+    }
+
+    function addRandomVege(context) {
+
+      // check is patch left, if not remove from random
+      vegesArray.forEach((vege => {
+        if (emptyPatchForVege(context, vege) == 0) {
+          vegesArray = vegesArray.filter(e => e !== vege)
+        }
+      }))
+
+      // add new vegetable randomly
+      var randomVege = Phaser.Math.RND.between(0, vegesArray.length - 1);
+      console.log("adding random vege:", randomVege)
+      var randomX = Phaser.Math.RND.between(10, 790);
+      var randomY = Phaser.Math.RND.between(10, 790);
+      switch (vegesArray[randomVege]) {
+        case 'carrots':
+          // carrot
+          let carrot = context.vegetables.create(randomX, randomY, "carrot");
+          carrot.setScale(1.5);
+          carrot.name = "carrot";
+          carrot.setDepth(600)
+
+          break;
+        case 'cabbage':
+          // cabbage
+          let cabbage = context.vegetables.create(randomX, randomY, "cabbage");
+          cabbage.setScale(1.5);
+          cabbage.name = "cabbage";
+          cabbage.setDepth(600)
+
+          break;
+        case 'kumara':
+          // kumara
+          let kumara = context.vegetables.create(randomX, randomY, "kumara");
+          kumara.setScale(1.5);
+          kumara.name = "kumara";
+          kumara.setDepth(600)
+
+          break;
+        case 'pumpkin':
+          //pumpkin
+          let pumpkin = context.vegetables.create(randomX, randomY, "pumpkin");
+          pumpkin.setScale(1.5);
+          pumpkin.name = "pumpkin";
+          pumpkin.setDepth(600)
+          break;
+      }
+    }
+
+    function addEnemy(context, plantedVege) {
+      //return //testing no rat
+
+      // === MAYBE MORE ADVANCED ENEMY WAVES. add enemies to an outer ring circle (to close in)
+      // const circle = new Phaser.Geom.Circle(map.widthInPixels / 2, map.heightInPixels / 2, 800);
+      // this.enemyRats = this.physics.add.group({ key: 'enemies', repeat: 8 });
+      // Phaser.Actions.PlaceOnCircle(this.enemyRats.getChildren(), circle);
+      // this.enemyRats.children.iterate((child) => {
+      //   // if grown vegetable
+      //   this.physics.moveToObject(child, this.vege, 60);
+      //   // else go for player
+      //   this.physics.moveToObject(child, this.player, 60);
+      // });
+
+      if (plantedVege) {
+        var randomStartSide = Phaser.Math.RND.between(0, 3);
+        var randomX = 0
+        var randomY = 0
+
+        switch (randomStartSide) {
+          case 0: //north start position
+            randomY = -10
+            randomX = Phaser.Math.RND.between(0, 800);
+            break;
+          case 1: // east start position
+            randomX = 810
+            randomY = Phaser.Math.RND.between(0, 800);
+            break;
+          case 2: // south start position
+            randomY = 810
+            randomX = Phaser.Math.RND.between(0, 800);
+            break;
+          case 3: // west start position
+            randomX = -10
+            randomY = Phaser.Math.RND.between(0, 800);
+            break;
+        }
+
+        let rat = context.enemies.create(randomX, randomY, "enemies");
+        rat.setScale(1.5);
+        rat.name = "rat";
+        context.physics.moveToObject(rat, plantedVege)
+        context.physics.add.overlap(rat, plantedVege, enemyGotVege, false, this);
+      }
+
+    }
+    function gotHitByEnemy(player, enemy, context) {
+      console.log("hit by enemy")
+      context.scene.start("game-over");
+    }
+    function enemyGoForRandomVege(context) {
+      //dreturn //testing no rat
+
+      // join all vege
+      let allVegesInGarden = context.gardenCarrots.concat(context.gardenCabbage, context.gardenPumpkin, context.gardenKumara)
+      // filter grown
+      let plantedVegesInGarden = allVegesInGarden.filter(vege => vege.data.values.status == 'grown')
+      if (plantedVegesInGarden) {
+        // random number
+        const random = Math.floor(Math.random() * plantedVegesInGarden.length);
+        // send rat after random grown vege
+        addEnemy(context, plantedVegesInGarden[random])
+      }
+    }
+    function enemyGotVege(rat, vege) {
+      console.log("rat got vege")
+      console.log(vege)
+      rat.destroy()
+      vege.anims.stop()
+      vege.setVisible(false)
+      vege.setData('status', 'empty')
+
+    }
+    function enemyHitByTaiaha(bullet, rat) {
+      // sound
+      let mouseSound = this.sound.add("mouse-squeak");
+      mouseSound.play({ volume: 0.3 })
+      bullet.destroy()
+      rat.destroy()
+    }
+
+    function gotVegetable(player, vegetable) {
+      console.log("tane picked up vegetable")
+
+
+      // vege already in hand
+      if (vegeInHand == true || grownVegeInHand == true) {
+        return;
+      }
+      // picked up a new vege
+      else {
+        console.log("got vege: ", vegetable.name);
+        // destroy token on ground as it has been 'picked up'
+        vegetable.destroy();
+
+        // sound
+        this.sound.play("score");
+
+        // depending on vege got. show the vege above players head.
+        switch (vegetable.name) {
+          case "carrot":
+            vegeInHand = true;
+            vegeInHandEquals = "carrot";
+            this.carrotOnHead.setVisible(true);
+            this.cabbageOnHead.setVisible(false);
+            this.kumaraOnHead.setVisible(false);
+            this.pumpkinOnHead.setVisible(false);
+            break;
+          case "cabbage":
+            vegeInHand = true;
+            vegeInHandEquals = "cabbage";
+            this.carrotOnHead.setVisible(false);
+            this.cabbageOnHead.setVisible(true);
+            this.kumaraOnHead.setVisible(false);
+            this.pumpkinOnHead.setVisible(false);
+            break;
+          case "kumara":
+            vegeInHand = true;
+            vegeInHandEquals = "kumara";
+            this.carrotOnHead.setVisible(false);
+            this.cabbageOnHead.setVisible(false);
+            this.kumaraOnHead.setVisible(true);
+            this.pumpkinOnHead.setVisible(false);
+            break;
+          case "pumpkin":
+            vegeInHand = true;
+            vegeInHandEquals = "pumpkin";
+            this.carrotOnHead.setVisible(false);
+            this.cabbageOnHead.setVisible(false);
+            this.kumaraOnHead.setVisible(false);
+            this.pumpkinOnHead.setVisible(true);
+            break;
+          default:
+            vegeInHand = false;
+            vegeInHandEquals = "";
+            this.carrotOnHead.setVisible(false);
+            this.cabbageOnHead.setVisible(false);
+            this.kumaraOnHead.setVisible(false);
+            this.pumpkinOnHead.setVisible(false);
+        }
+      }
+    }
+    function gotGrownCarrot(player, vege) {
+      if (vege.visible == false || grownVegeInHand == true) return
+      if (vege.data.values.status == 'grown') {
+        // sound
+        this.sound.play("uproot");
+        // put grown vege above head & destroy
+        this.carrotOnHead.setVisible(true);
+        this.cabbageOnHead.setVisible(false);
+        this.kumaraOnHead.setVisible(false);
+        this.pumpkinOnHead.setVisible(false);
+        vege.setData('status', 'harvested');
+        vege.setVisible(false)
+        this.add.image(vege.x, vege.y, "dirt").setScale(2)
+        grownVegeInHand = true
+        grownVegeInHandEquals = "carrot";
+        // take to hangi pit
+        enemyGoForRandomVege(this)
+      }
+    }
+    function gotGrownCabbage(player, vege) {
+      if (vege.visible == false || grownVegeInHand == true) return
+      if (vege.data.values.status == 'grown') {
+        // sound
+        this.sound.play("uproot");
+        // put grown vege above head & destroy
+        this.carrotOnHead.setVisible(false);
+        this.cabbageOnHead.setVisible(true);
+        this.kumaraOnHead.setVisible(false);
+        this.pumpkinOnHead.setVisible(false);
+        vege.setData('status', 'harvested');
+        vege.setVisible(false)
+        this.add.image(vege.x, vege.y, "dirt").setScale(2)
+        grownVegeInHand = true
+        grownVegeInHandEquals = "cabbage";
+        // take to hangi pit
+        enemyGoForRandomVege(this)
+      }
+    }
+    function gotGrownPumpkin(player, vege) {
+      if (vege.visible == false || grownVegeInHand == true) return
+      if (vege.data.values.status == 'grown') {
+        // sound
+        this.sound.play("uproot");
+        // put grown vege above head & destroy
+        this.carrotOnHead.setVisible(false);
+        this.cabbageOnHead.setVisible(false);
+        this.kumaraOnHead.setVisible(false);
+        this.pumpkinOnHead.setVisible(true);
+        vege.setData('status', 'harvested');
+        vege.setVisible(false)
+        this.add.image(vege.x, vege.y, "dirt").setScale(2)
+        grownVegeInHand = true
+        grownVegeInHandEquals = "pumpkin";
+        // take to hangi pit
+        enemyGoForRandomVege(this)
+      }
+    }
+    function gotGrownKumara(player, vege) {
+      if (vege.visible == false || grownVegeInHand == true) return
+      if (vege.data.values.status == 'grown') {
+        // sound
+        this.sound.play("uproot");
+        // put grown vege above head & destroy
+        this.carrotOnHead.setVisible(false);
+        this.cabbageOnHead.setVisible(false);
+        this.kumaraOnHead.setVisible(true);
+        this.pumpkinOnHead.setVisible(false);
+        vege.setData('status', 'harvested');
+        vege.setVisible(false)
+        this.add.image(vege.x, vege.y, "dirt").setScale(2)
+        grownVegeInHand = true
+        grownVegeInHandEquals = "kumara";
+        // take to hangi pit
+      }
+    }
+
+    function gardenFull(context) {
+      console.log("garden is full")
+      context.vegeInHandEquals = "";
+      context.vegeInHand = false;
+      context.carrotOnHead.setVisible(false);
+      context.cabbageOnHead.setVisible(false);
+      context.kumaraOnHead.setVisible(false);
+      context.pumpkinOnHead.setVisible(false);
+    }
+    function emptyPatchForVege(context, vege) {
+      // check if empty
+      switch (vege) {
+        case 'carrot':
+          let emptyCarrotPatches = context.gardenCarrots.filter(vege => vege.data.values.status == 'empty').length
+          console.log("emptyCarrotPatches", emptyCarrotPatches)
+          return emptyCarrotPatches
+          break;
+        case 'cabbage':
+          let emptyCabbagePatches = context.gardenCabbage.filter(vege => vege.data.values.status == 'empty').length
+          console.log("emptyCabbagePatches", emptyCabbagePatches)
+          return emptyCabbagePatches
+          break;
+        case 'pumpkin':
+          let emptyPumpkinPatches = context.gardenPumpkin.filter(vege => vege.data.values.status == 'empty').length
+          console.log("emptyPumpkinPatches", emptyPumpkinPatches)
+          return emptyPumpkinPatches
+          break;
+        case 'kumara':
+          let emptyKumaraPatches = context.gardenKumara.filter(vege => vege.data.values.status == 'empty').length
+          console.log("emptyKumaraPatches", emptyKumaraPatches)
+          return emptyKumaraPatches
+          break;
+      }
+    }
+
+    function createTimer(context) {
+      // ====================== timer text =============================
+      // load google font
+      WebFont.load({
+        google: {
+          families: ["Freckle Face", "Finger Paint", "Nosifer"],
+        },
+        active: () => {
+          context.timer = context.add
+            .text(game.config.width / 2, 25, "Time: " + countdownTimer, {
+              fontFamily: "Freckle Face",
+              fontSize: 35,
+              color: "#ffffff",
+            })
+            .setShadow(2, 2, "#333333", 2, false, true);
+          context.timer.setAlign("center");
+          context.timer.setOrigin();
+          context.timer.setDepth(600);
+          context.timer.setScrollFactor(0);
+
+          context.time.addEvent({
+            delay: 1000, // ms
+            callback: context.loadTimer,
+            //args: [],
+            callbackScope: context,
+            loop: true,
+          });
+        },
+      });
+    }
+    function createHangiPercentage(context) {
+      WebFont.load({
+        google: {
+          families: ["Freckle Face", "Finger Paint", "Nosifer"],
+        },
+        active: () => {
+          context.hangiPercent = context.add
+            .text(context.game.config.width / 2 + 250 - 30, game.config.height - 45, hangiPercentValue + "%", {
+              fontFamily: "Freckle Face",
+              fontSize: 35,
+              color: "#ffffff",
+            })
+            .setShadow(2, 2, "#333333", 2, false, true);
+          context.hangiPercent.setAlign("center");
+          context.hangiPercent.setOrigin();
+          context.hangiPercent.setDepth(1000);
+          context.hangiPercent.setScrollFactor(0);
+
+        },
+      });
+    }
+
+    function winGame(context) {
+      context.sound.play("cheer");
+
+      // center text: https://www.stephengarside.co.uk/blog/phaser-3-center-text-in-middle-of-screen/
+      const screenCenterX =
+        context.cameras.main.worldView.x + context.cameras.main.width / 2;
+      const screenCenterY =
+        context.cameras.main.worldView.y + context.cameras.main.height / 2;
+
+      context.dialog4 = context.rexUI.add
+        .dialog({
+          x: screenCenterX,
+          y: screenCenterY,
+          width: 200,
+          background: context.rexUI.add.roundRectangle(
+            0,
+            0,
+            100,
+            100,
+            10,
+            0x533d8e
+          ),
+          content: context.createLabel(context, "The hangi is completed!!!\nYou have recieved another\npiece of your dream.", 10, 10),
+          description: context.add
+            .sprite({
+              x: 0,
+              y: 0,
+              key: "dreamDiamond",
+            })
+            .play("dreamDiamond")
+            .setDisplaySize(150, 150),
+          actions: [context.createLabel(context, "NEXT", 10, 10)],
+          space: {
+            left: 10,
+            right: 10,
+            top: 10,
+            bottom: 20,
+            content: 10,
+            toolbarItem: 5,
+            choice: 15,
+            action: 15,
+            description: 25,
+            descriptionLeft: 100,
+            descriptionRight: 100,
+          },
+          align: {
+            content: "center",
+            description: "center",
+            actions: "center", // 'center'|'left'|'right'
+          },
+          click: {
+            mode: "release",
+          },
+        })
+        .layout()
+        //  .drawBounds(context.add.graphics(), 0xff0000)
+        .popUp(1000)
+        .setDepth(1003)
+        .setScrollFactor(0);
+
+      context.dialog5 = context.rexUI.add
+        .dialog({
+          x: screenCenterX,
+          y: screenCenterY,
+          width: 200,
+          background: context.rexUI.add.roundRectangle(
+            0,
+            0,
+            100,
+            100,
+            10,
+            0x533d8e
+          ),
+          content: context.createLabel(context, "What smaller tasks and actions\nneed to be done in order\nto reach your moemoea?", 20, 20),
+          actions: [context.createLabel(context, "DONE", 10, 10)],
+          space: {
+            left: 20,
+            right: 20,
+            top: 50,
+            bottom: 20,
+            content: 20,
+            toolbarItem: 5,
+            choice: 15,
+            action: 15,
+            description: 25,
+            //  descriptionLeft: 200,
+            //  descriptionRight: 200,
+          },
+          align: {
+            content: "center",
+            description: "center",
+            actions: "center", // 'center'|'left'|'right'
+          },
+          click: {
+            mode: "release",
+          },
+        })
+        .layout()
+        //  .drawBounds(context.add.graphics(), 0xff0000)
+        .popUp(1000)
+        .setDepth(1003)
+        .setScrollFactor(0);
+      context.dialog5.setVisible(false)
+
+
+
+      context.dialog4.on(
+        "button.click",
+        function (button) {
+          if (button.text === "NEXT") {
+            context.dialog4.setVisible(false);
+            context.dialog5.setVisible(true).popUp(1000);
+          }
+        },
+        context
+      );
+
+      context.dialog5.on(
+        "button.click",
+        function (button) {
+          if (button.text === "DONE") {
+            console.log("starting game");
+            // context.scene.start("game-hud")
+            context.scene.start("game-play");
+          }
+        },
+        context
+      )
+
+    }
+
+    function createJoystick(context) {
+      context.joyStick = context.plugins.get('rexvirtualjoystickplugin').add(context, {
+        x: 100,
+        y: 270,
+        radius: 50,
+        depth: 2000,
+        base: context.add.circle(0, 0, 50, 0x888888).setDepth(600),
+        thumb: context.add.circle(0, 0, 30, 0xcccccc).setDepth(600)
+        // dir: '8dir',   // 'up&down'|0|'left&right'|1|'4dir'|2|'8dir'|3
+        // forceMin: 16,
+        // enable: true
+      })
+        .on('update', function () { dumpJoyStickState(context) });
+      dumpJoyStickState(context);
+    }
+
+    function dumpJoyStickState(context) {
+      context.cursorKeys = context.joyStick.createCursorKeys();
+    }
+  </script>
+
+</body>
+
+</html>
