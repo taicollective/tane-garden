@@ -9,7 +9,7 @@ Help Tāne to plant his māra kai, so he can prepare his hāngī.
 
 Game develop by Tai Collective for Te Tihi's app Te Mauri Moemoeā
 
-Tai Collective developers that worked on Tāne Platformer:
+Tai Collective developers that worked on Tāne's Garden:
 @kyden
 [@tairea](https://github.com/tairea)
 
