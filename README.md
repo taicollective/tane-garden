@@ -14,7 +14,9 @@ Tai Collective developers that worked on Tāne's Garden:
 [@tairea](https://github.com/tairea)
 
 
-![Tāne garden screenshot1](https://github.com/taicollective/tane-garden/blob/main/screenshot.png?raw=true)
+![Tāne garden screenshot1](https://github.com/taicollective/tane-garden/blob/main/screenshot1.png?raw=true)
+
+![Tāne garden screenshot](https://github.com/taicollective/tane-garden/blob/main/screenshot.png?raw=true)
 
 Inspired by [Tane taha](https://github.com/tairea/tane-taha)
 
