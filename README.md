@@ -5,7 +5,7 @@ Live game: [https://tane-defense-game.glitch.me/](https://tane-defense-game.glit
 
 ------------
 
-Help Tāne to plant his māra kai, so he can prepare his hangi.
+Help Tāne to plant his māra kai, so he can prepare his hāngī.
 
 Game develop by Tai Collective for Te Tihi's app Te Mauri Moemoeā
 
